@@ -79,6 +79,7 @@
 		<module>vector-stores/spring-ai-redis-store</module>
 		<module>vector-stores/spring-ai-redis-semantic-cache</module>
 		<module>vector-stores/spring-ai-typesense-store</module>
+		<module>vector-stores/spring-ai-valkey-store</module>
 		<module>vector-stores/spring-ai-weaviate-store</module>
 		<module>vector-stores/spring-ai-bedrock-knowledgebase-store</module>
 		<module>vector-stores/spring-ai-s3-vector-store</module>
@@ -144,6 +145,7 @@
 		<module>auto-configurations/vector-stores/spring-ai-autoconfigure-vector-store-redis</module>
 		<module>auto-configurations/vector-stores/spring-ai-autoconfigure-vector-store-redis-semantic-cache</module>
 		<module>auto-configurations/vector-stores/spring-ai-autoconfigure-vector-store-typesense</module>
+		<module>auto-configurations/vector-stores/spring-ai-autoconfigure-vector-store-valkey</module>
 		<module>auto-configurations/vector-stores/spring-ai-autoconfigure-vector-store-weaviate</module>
 		<module>auto-configurations/vector-stores/spring-ai-autoconfigure-vector-store-pgvector</module>
 		<module>auto-configurations/vector-stores/spring-ai-autoconfigure-vector-store-bedrock-knowledgebase</module>
@@ -168,6 +170,7 @@
 		<module>starters/spring-ai-starter-vector-store-qdrant</module>
 		<module>starters/spring-ai-starter-vector-store-redis</module>
 		<module>starters/spring-ai-starter-vector-store-typesense</module>
+		<module>starters/spring-ai-starter-vector-store-valkey</module>
 		<module>starters/spring-ai-starter-vector-store-weaviate</module>
 		<module>starters/spring-ai-starter-vector-store-bedrock-knowledgebase</module>
 		<module>starters/spring-ai-starter-vector-store-s3</module>
