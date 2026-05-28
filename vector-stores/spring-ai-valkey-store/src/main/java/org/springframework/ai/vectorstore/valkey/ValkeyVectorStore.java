@@ -16,7 +16,17 @@
 
 package org.springframework.ai.vectorstore.valkey;
 
-import static glide.api.models.GlideString.gs;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,19 +44,9 @@ import glide.api.models.commands.FT.FTCreateOptions.TagField;
 import glide.api.models.commands.FT.FTCreateOptions.VectorFieldFlat;
 import glide.api.models.commands.FT.FTCreateOptions.VectorFieldHnsw;
 import glide.api.models.commands.FT.FTSearchOptions;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.DocumentMetadata;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -81,6 +81,8 @@ public class ValkeyVectorStore extends AbstractObservationVectorStore implements
 	public static final String DEFAULT_CONTENT_FIELD_NAME = "content";
 
 	public static final String DEFAULT_EMBEDDING_FIELD_NAME = "embedding";
+
+	public static final String DEFAULT_CLIENT_NAME = "spring_ai_vector_store_client";
 
 	public static final Algorithm DEFAULT_VECTOR_ALGORITHM = Algorithm.HNSW;
 
@@ -141,7 +143,7 @@ public class ValkeyVectorStore extends AbstractObservationVectorStore implements
 	}
 
 	public boolean indexExists(String checkedIndexName) {
-		return FT.list(client)
+		return FT.list(this.client)
 			.thenApply(indices -> Arrays.stream(indices).map(GlideString::toString).anyMatch(checkedIndexName::equals))
 			.join();
 	}
@@ -259,7 +261,7 @@ public class ValkeyVectorStore extends AbstractObservationVectorStore implements
 
 			float[] dummyEmbedding = new float[this.embeddingModel.dimensions()];
 			FTSearchOptions options = FTSearchOptions.builder()
-				.params(Map.of(gs("BLOB"), gs(floatArrayToBytes(dummyEmbedding))))
+				.params(Map.of(GlideString.gs("BLOB"), GlideString.gs(floatArrayToBytes(dummyEmbedding))))
 				.build();
 
 			Object[] searchResult = FT.search(this.client, this.indexName, query, options).get();
@@ -273,7 +275,7 @@ public class ValkeyVectorStore extends AbstractObservationVectorStore implements
 
 			matchedResults.keySet()
 				.stream()
-				.map(key -> client.del(new GlideString[] { key }))
+				.map(key -> this.client.del(new GlideString[] { key }))
 				.forEach(CompletableFuture::join);
 
 			logger.debug("Deleted {} documents matching filter", matchedResults.size());
@@ -288,7 +290,7 @@ public class ValkeyVectorStore extends AbstractObservationVectorStore implements
 		try {
 			for (String id : idList) {
 				String key = this.prefix + id;
-				this.client.del(new GlideString[] { gs(key) }).get();
+				this.client.del(new GlideString[] { GlideString.gs(key) }).get();
 			}
 		}
 		catch (Exception e) {
@@ -315,7 +317,7 @@ public class ValkeyVectorStore extends AbstractObservationVectorStore implements
 					this.embeddingFieldName, DISTANCE_FIELD_NAME);
 
 			FTSearchOptions options = FTSearchOptions.builder()
-				.params(Map.of(gs("BLOB"), gs(floatArrayToBytes(queryEmbedding))))
+				.params(Map.of(GlideString.gs("BLOB"), GlideString.gs(floatArrayToBytes(queryEmbedding))))
 				.build();
 
 			Object[] result = FT.search(this.client, this.indexName, query, options).get();
@@ -327,13 +329,10 @@ public class ValkeyVectorStore extends AbstractObservationVectorStore implements
 		}
 	}
 
-	private record SimilarityData(double score, double distance) {
-	}
-
 	private SimilarityData extractSimilarityData(Map<GlideString, Object> fields) {
 
 		double score = 0.0;
-		GlideString scoreKey = gs(DISTANCE_FIELD_NAME);
+		GlideString scoreKey = GlideString.gs(DISTANCE_FIELD_NAME);
 		double distance = Double.parseDouble(fields.get(scoreKey).toString());
 		if (fields.containsKey(scoreKey)) {
 			double cosineScore = 1.0 - (distance / 2.0);
@@ -361,7 +360,7 @@ public class ValkeyVectorStore extends AbstractObservationVectorStore implements
 			return Optional.empty();
 		}
 
-		GlideString jsonKey = gs(JSON_PATH_ROOT);
+		GlideString jsonKey = GlideString.gs(JSON_PATH_ROOT);
 		if (!fields.containsKey(jsonKey)) {
 			return Optional.empty();
 		}
@@ -485,7 +484,10 @@ public class ValkeyVectorStore extends AbstractObservationVectorStore implements
 		}
 	}
 
-	public static class Builder extends AbstractVectorStoreBuilder<Builder> {
+	private record SimilarityData(double score, double distance) {
+	}
+
+	public static final class Builder extends AbstractVectorStoreBuilder<Builder> {
 
 		private final BaseClient client;
 
